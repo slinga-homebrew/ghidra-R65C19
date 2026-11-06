@@ -1,0 +1,469 @@
+@include "6502.slaspec"
+
+
+define register offset=0x40 size=2 [ I_R W ]; # "I" is already used as a bitflag
+
+define token bitopbyte (8)
+    bitop           = (0,7)
+
+    action          = (7,7)
+    bitindex        = (4,6) dec
+    optype          = (0,3)
+;
+
+define token testopbyte (8)
+    top             = (0, 7)
+    taaa            = (5, 7)
+    td              = (4, 4)
+    tbb             = (2, 3)
+    tcc             = (0, 1)
+;
+
+define token data2 (8)
+    imm8_2 = (0,7)
+    mask = (0,7)
+;
+
+define token data3 (8)
+    dest = (0,7)
+;
+
+################################################################
+
+# Zero Page Indirect
+ZIOP:   (imm8)    is bbb=4; imm8  { addr:2 = imm8; tmp:2 = *:2 addr; export *:1 tmp; }
+
+OPTB:   imm8      is tbb=1; imm8  { export *:1 imm8; }
+OPTB:   imm16     is tbb=3; imm16 { export *:1 imm16; }
+
+# Absolute Indexed Indirect
+ADDRIX: (imm16,X) is X; imm16     { addr:2 = imm16 + zext(X); tmp:2 = *:2 addr; export tmp; }
+
+# Instructions
+:BBR "#"bitindex, imm8, REL    is (action=0 & optype=0xF) & bitindex ; imm8 ; REL {
+    local ptr:2 = imm8;
+    local value:1 = *:1 ptr;
+    local jump = (value & (1 << bitindex)) == 0;
+    if (jump) goto REL;
+}
+
+:BBS "#"bitindex, imm8, REL    is (action=1 & optype=0xF) & bitindex ; imm8 ; REL {
+    local ptr:2 = imm8;
+    local value:1 = *:1 ptr;
+    local jump = (value & (1 << bitindex)) != 0;
+    if (jump) goto REL;
+}
+
+:BRA  REL                      is op=0x80; REL
+{
+    goto REL;
+}
+
+:JMP ADDRIX                    is (op=0x7C); ADDRIX
+{
+    goto [ADDRIX];
+}
+
+:PHX                           is op=0xDA
+{
+    *:1 (SP) = X;
+    SP = SP - 1;
+}
+
+:PLX                           is op=0xFA
+{
+    SP = SP + 1;
+    X = *:1 (SP);
+    resultFlags(X);
+}
+
+:PHY                           is op=0x5A
+{
+    *:1 (SP) = Y;
+    SP = SP - 1;
+}
+
+:PLY                           is op=0x7A
+{
+    SP = SP + 1;
+    Y = *:1 (SP);
+    resultFlags(Y);
+}
+
+:RMB "#"bitindex, imm8         is (action=0 & optype=7) & bitindex ; imm8 {
+    local ptr:2 = imm8;
+    local value:1 = *:1 ptr;
+    value = value & ~(1 << bitindex);
+    *:1 ptr = value;
+}
+
+:SMB "#"bitindex, imm8         is (action=1 & optype=7) & bitindex ; imm8 {
+    local ptr:2 = imm8;
+    local value:1 = *:1 ptr;
+    value = value | (1 << bitindex);
+    *:1 ptr = value;
+}
+
+######## Filter Enhancement Instructions ##############
+:ASR                   is op=0x3A
+{
+    # shift right, sign extend; N, Z (C not affected: TRM 3.2.9)
+    A = (A s>> 1);
+    resultFlags(A);
+}
+
+:CLW                   is op=0x52
+{
+    W = 0;
+    V = 0;
+}
+
+:EXC imm8              is op=0xD4 ; imm8
+{
+    local addr:2 = zext(imm8 + X);
+    addr = addr & 0x00FF;
+
+    local temp:1 = (*:1 addr);
+
+    *:1 addr = A;
+    A = temp;
+}
+
+:JSB0                  is op=0x0B
+{
+    # push the return address (next opcode), then jump through the vector at $FFE0
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFE0;
+    call [*:2 vector];
+}
+
+:JSB1                  is op=0x1B
+{
+    # push the return address (next opcode), then jump through the vector at $FFE2
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFE2;
+    call [*:2 vector];
+}
+
+:JSB2                  is op=0x2B
+{
+    # push the return address (next opcode), then jump through the vector at $FFE4
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFE4;
+    call [*:2 vector];
+}
+
+:JSB3                  is op=0x3B
+{
+    # push the return address (next opcode), then jump through the vector at $FFE6
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFE6;
+    call [*:2 vector];
+}
+
+:JSB4                  is op=0x4B
+{
+    # push the return address (next opcode), then jump through the vector at $FFE8
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFE8;
+    call [*:2 vector];
+}
+
+:JSB5                  is op=0x5B
+{
+    # push the return address (next opcode), then jump through the vector at $FFEA
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFEA;
+    call [*:2 vector];
+}
+
+:JSB6                  is op=0x6B
+{
+    # push the return address (next opcode), then jump through the vector at $FFEC
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFEC;
+    call [*:2 vector];
+}
+
+:JSB7                  is op=0x7B
+{
+    # push the return address (next opcode), then jump through the vector at $FFEE
+    *:2 (SP - 1) = inst_next;
+    SP = SP - 2;
+    local vector:2 = 0xFFEE;
+    call [*:2 vector];
+}
+
+:LAB                   is op=0x13
+{
+    # |A| -> A; N, Z
+    local neg:1 = A s< 0;
+    A = A * (1 - 2 * neg);
+    resultFlags(A);
+}
+
+:MPA                   is op=0x12
+{
+    # (A x Y) + W -> W, signed, saturating; N, V; low result byte left in Y
+    local sum:4 = sext(A) * sext(Y) + sext(W);
+    N = sum s< 0;
+    local hi:1 = sum s> 32767;
+    local lo:1 = sum s< -32768;
+    V = hi | lo;
+    sum = sum * zext(!(hi | lo)) + 32767 * zext(hi) + (-32768) * zext(lo);
+    W = sum:2;
+    Y = sum:1;
+}
+
+:MPY                   is op=0x02
+{
+    # (A x Y) -> A (high), Y (low), signed; N, V (V always clear: the product fits)
+    local prod:2 = sext(A) * sext(Y);
+    A = prod(1);
+    Y = prod:1;
+    N = prod s< 0;
+    V = 0;
+}
+
+:PSH                   is op=0x22
+{
+    *:1 SP = A;
+    SP = SP - 1;
+    *:1 SP = X;
+    SP = SP - 1;
+    *:1 SP = Y;
+    SP = SP - 1;
+}
+
+:PUL                   is op=0x32
+{
+    SP = SP + 1;
+    Y = *:1 SP;
+    SP = SP + 1;
+    X = *:1 SP;
+    SP = SP + 1;
+    A = *:1 SP;
+}
+
+:RND                   is op=0x42
+{
+    # round W: W_H:Y + bit 7 of W_L, signed, saturating -> A (high), Y (low); N, V
+    local t:2 = (W & 0xFF00) | zext(Y);
+    local sum:4 = sext(t) + zext((W << 1) & 0x100);
+    N = sum s< 0;
+    local hi:1 = sum s> 32767;
+    local lo:1 = sum s< -32768;
+    V = hi | lo;
+    sum = sum * zext(!(hi | lo)) + 32767 * zext(hi) + (-32768) * zext(lo);
+    A = sum(1);
+    Y = sum:1;
+}
+
+:TAW                  is op=0x62
+{
+    # A -> W_H, 0 -> W_L; N, Z
+    W = zext(A) << 8;
+    resultFlags(A);
+}
+
+:TWA                  is op=0x72
+{
+    # W_H -> A; N, Z
+    A = W(1);
+    resultFlags(A);
+}
+
+:NEG                 is op=0x1A
+{
+    # 2s complement A; N, Z
+    A = -A;
+    resultFlags(A);
+}
+
+:PHW                is op=0x23
+{
+    # push W_H, then W_L
+    *:2 (SP - 1) = W;
+    SP = SP - 2;
+}
+
+:PLW               is op=0x33
+{
+    # pull W_L, then W_H
+    W = *:2 (SP + 1);
+    SP = SP + 2;
+}
+
+######## Threaded Code instructions ##############
+:NXT               is op=0x8B
+{
+    local temp:2 = (*:2 I_R);
+    I_R = I_R + 2;
+    goto [temp];
+}
+
+:LII               is op=0x9B
+{
+    I_R = *:2 I_R;
+}
+
+:LAI              is op=0xEB
+{
+    A = *:1 I_R;
+    resultFlags(A);
+}
+
+:INI              is op=0xBB
+{
+    I_R = I_R + 1;
+}
+
+:PHI             is op=0xCB
+{
+    # push I high, then low
+    *:2 (SP - 1) = I_R;
+    SP = SP - 2;
+}
+
+:PLI             is op=0xDB
+{
+    # pull I low, then high
+    I_R = *:2 (SP + 1);
+    SP = SP + 2;
+}
+
+:JPI (imm16)           is op=0x0C ; imm16
+{
+    # PC+1 -> I; the operand is an indirect pointer to the next execution address;
+    # I + 2 -> I, so I = address of JPI + 3 (data sheet Table A-5)
+    I_R = inst_start + 3;
+    local ptr:2 = imm16;
+    local target:2 = *:2 ptr;
+    goto [target];
+}
+
+:TIP             is op=0x03
+{
+    goto [I_R];
+}
+
+:PIA            is op=0xFB
+{
+    # pull I (low first), (I) -> A, I + 1 -> I; N, Z
+    I_R = *:2 (SP + 1);
+    SP = SP + 2;
+    A = *:1 I_R;
+    I_R = I_R + 1;
+    resultFlags(A);
+}
+
+:LAN            is op=0xAB
+{
+    A = *:1 I_R;
+    I_R = I_R + 1;
+    resultFlags(A);
+}
+
+######## Controller Instructions ##############
+:BAR imm16, mask, REL           is op=0xE2 ; imm16 ; mask ; REL
+{
+    # branch if any of the masked bits is clear
+    local addr:2 = imm16;
+    local m:1 = *:1 addr;
+    if ((~m & mask) != 0) goto REL;
+}
+
+:BAS imm16, mask, REL         is op=0xF2 ; imm16 ; mask ; REL
+{
+    # branch if any of the masked bits is set
+    local addr:2 = imm16;
+    local m:1 = *:1 addr;
+    if ((m & mask) != 0) goto REL;
+}
+
+:STI "#"imm8, imm8_2          is op=0xB2 ; imm8 ; imm8_2
+{
+    local addr:2 = imm8_2;
+    *:1 addr = imm8:1;
+}
+
+:RBA mask, imm16              is op=0xC2 ; mask ; imm16
+{
+    # clear bits; the mask is left in A (C29/C39 TRM p. C-29, per MAME)
+    local addr:2 = imm16;
+    *:1 addr = *:1 addr & ~mask;
+    A = mask;
+}
+
+:SBA  mask, imm16              is op=0xD2 ; mask ; imm16
+{
+    # set bits; the mask is left in A
+    local addr:2 = imm16;
+    *:1 addr = *:1 addr | mask;
+    A = mask;
+}
+
+:ADD imm8                    is op=0x64 ; imm8
+{
+    # add without carry: N, Z; V, C (binary mode)
+    local addr:2 = imm8;
+    local m:1 = *:1 addr;
+@if defined(R65C19)
+    C = 0;
+    adc_r65c19(m);
+@else
+    A = A + m;
+@endif
+}
+
+:ADD imm8, X                 is op=0x74 ; imm8 ; X
+{
+    # add without carry: N, Z; V, C (binary mode)
+    local addr:2 = (imm8 + zext(X)) & 0xFF;
+    local m:1 = *:1 addr;
+@if defined(R65C19)
+    C = 0;
+    adc_r65c19(m);
+@else
+    A = A + m;
+@endif
+}
+
+:ADD "#"imm8                is op=0x89 ; imm8
+{
+    # add without carry: N, Z; V, C (binary mode)
+    local m:1 = imm8;
+@if defined(R65C19)
+    C = 0;
+    adc_r65c19(m);
+@else
+    A = A + m;
+@endif
+}
+
+######## 65C02 instrucitons that should not be present ##########
+#:TSB OPTB                      is (tcc=0 & taaa=0 & td=0) ... & OPTB
+#:TRB OPTB                      is (tcc=0 & taaa=0 & td=1) ... & OPTB
+#:INC A                         is op=0x1A & A
+#:ORA  ZIOP                     is (cc=2 & aaa=0) ... & ZIOP
+#:AND ZIOP                      is (cc=2 & aaa=1) ... & ZIOP
+#:BIT OP2                       is (op=0x34 | op=0x3C) ... & OP2
+#:DEC A                         is op=0x3A & A
+#:EOR ZIOP                      is (cc=2 & aaa=2) ... & ZIOP
+#:STZ imm8                      is op=0x64 ; imm8
+#:ADC ZIOP                      is (cc=2 & aaa=3) ... & ZIOP
+#:STZ imm8,X                    is op=0x74 & X ; imm8
+#:BIT "#"imm8                   is op=0x89; imm8
+#:STA ZIOP                      is (cc=2 & aaa=4) ... & ZIOP
+#:STZ imm16                     is op=0x9C ; imm16
+#:STZ imm16,X                   is op=0x9E & X ; imm16
+#:LDA ZIOP                      is (cc=2 & aaa=5) ... & ZIOP
+#:CMP ZIOP                      is (cc=2 & aaa=6) ... & ZIOP
+#:SBC ZIOP                      is (cc=2 & aaa=7) ... & ZIOP

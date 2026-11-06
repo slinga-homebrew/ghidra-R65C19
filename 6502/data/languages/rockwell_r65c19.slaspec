@@ -1,0 +1,4 @@
+@define 65C02_VERSION "ROCKWELL_R65C19"
+@define R65C19 ""
+
+@include "65c02.slaspec"

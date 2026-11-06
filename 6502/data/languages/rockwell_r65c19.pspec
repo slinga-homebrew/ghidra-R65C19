@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Rockwell R65C19 (data sheet Order No. 410, p. 3-5 and Fig. 3-2; C29/C39 TRM Table 3-5) -->
+<processor_spec>
+  <programcounter register="PC"/>
+
+  <default_symbols>
+    <symbol name="RES" address="FFFE" entry="true" type="code_ptr"/>
+    <symbol name="NMI" address="FFFC" entry="true" type="code_ptr"/>
+    <symbol name="IRQ1" address="FFFA" entry="true" type="code_ptr"/>
+    <symbol name="IRQ2" address="FFF8" entry="true" type="code_ptr"/>
+    <symbol name="IRQ3" address="FFF6" entry="true" type="code_ptr"/>
+    <symbol name="IRQ4" address="FFF4" entry="true" type="code_ptr"/>
+    <symbol name="IRQ5" address="FFF2" entry="true" type="code_ptr"/>
+    <symbol name="IRQ6_BRK" address="FFF0" entry="true" type="code_ptr"/>
+    <symbol name="JSB0" address="FFE0" entry="true" type="code_ptr"/>
+    <symbol name="JSB1" address="FFE2" entry="true" type="code_ptr"/>
+    <symbol name="JSB2" address="FFE4" entry="true" type="code_ptr"/>
+    <symbol name="JSB3" address="FFE6" entry="true" type="code_ptr"/>
+    <symbol name="JSB4" address="FFE8" entry="true" type="code_ptr"/>
+    <symbol name="JSB5" address="FFEA" entry="true" type="code_ptr"/>
+    <symbol name="JSB6" address="FFEC" entry="true" type="code_ptr"/>
+    <symbol name="JSB7" address="FFEE" entry="true" type="code_ptr"/>
+  </default_symbols>
+
+  <default_memory_blocks>
+    <memory_block name="ZERO_PAGE" start_address="0x0000" length="0x0100" initialized="false"/>
+    <memory_block name="STACK" start_address="0x0100" length="0x0100" initialized="false"/>
+  </default_memory_blocks>
+</processor_spec>
